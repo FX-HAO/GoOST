@@ -2,6 +2,7 @@ package ost
 
 import (
 	"errors"
+	"fmt"
 )
 
 type Item interface {
@@ -247,6 +248,52 @@ func (n *Node) findByRank(rank int) []Item {
 	return nil
 }
 
+func (n *Node) Height() int {
+	if n == nil {
+		return 0
+	}
+
+	if n.Left == nil {
+		return 1 + n.Right.Height()
+	}
+	if n.Right == nil {
+		return 1 + n.Left.Height()
+	}
+
+	if n.Left.count > n.Right.count {
+		return 1 + n.Left.Height()
+	} else {
+		return 1 + n.Right.Height()
+	}
+}
+
+func (n *Node) PrettyPrint() {
+	height := n.Height()
+	lineNum := 1<<uint(height) - 1
+	var s [][]string
+	for i := 0; i < height; i++ {
+		var l []string
+		for j := 0; j < lineNum; j++ {
+			l = append(l, "\"\"")
+		}
+		s = append(s, l)
+	}
+
+	var helper func(node *Node, d, pos int)
+	helper = func(node *Node, d, pos int) {
+		if node == nil {
+			return
+		}
+		s[d-1][pos] = fmt.Sprintf("%.2v", node.firstItem())
+		helper(node.Left, d+1, pos-(1<<uint(height-d-1)))
+		helper(node.Right, d+1, pos+(1<<uint(height-d-1)))
+	}
+	helper(n, 1, (1<<uint(height-1))-1)
+	for i := 0; i < height; i++ {
+		fmt.Println(s[i])
+	}
+}
+
 type OST struct {
 	count int
 	root  *Node
@@ -322,4 +369,19 @@ func (t *OST) FindByRank(rank int) []Item {
 		return nil
 	}
 	return t.root.findByRank(rank)
+}
+
+func (t *OST) Height() int {
+	if t.root == nil {
+		return 0
+	}
+
+	return t.root.Height()
+}
+
+func (t *OST) PrettyPrint() {
+	if t.root == nil {
+		return
+	}
+	t.root.PrettyPrint()
 }

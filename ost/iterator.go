@@ -87,45 +87,6 @@ func (n *Node) iterate(dir direction, start, stop Item, includeStart bool, iter 
 			return true, false
 		}
 
-		// if p.firstItem().Less(stop) {
-		// if p.Left != nil {
-		// 	if end, terminate = p.Left.iterate(dir, start, stop, includeStart, iter); terminate {
-		// 		return end, terminate
-		// 	}
-		// }
-		// if start.Less(p.firstItem()) && stop.Greater(p.firstItem()) {
-		// 	for i := range p.Items {
-		// 		if res := iter(p.Items[i]); !res {
-		// 			return false, true
-		// 		}
-		// 	}
-		// }
-		// if p.Right != nil {
-		// 	if end, terminate = p.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
-		// 		return end, terminate
-		// 	}
-		// }
-		// }
-
-		// this node is between start and stop
-		// if start.Less(p.firstItem()) && stop.Greater(p.firstItem()) {
-		// 	if p.Left != nil {
-		// 		if end, terminate = p.Left.iterate(dir, start, stop, includeStart, iter); terminate {
-		// 			return end, terminate
-		// 		}
-		// 	}
-		// 	for i := range p.Items {
-		// 		if res := iter(p.Items[i]); !res {
-		// 			return false, true
-		// 		}
-		// 	}
-		// 	if p.Right != nil {
-		// 		if end, terminate = p.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
-		// 			return end, terminate
-		// 		}
-		// 	}
-		// }
-
 		return false, false
 	case descend:
 		if start.Less(stop) {

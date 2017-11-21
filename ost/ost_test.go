@@ -47,13 +47,6 @@ func TestDelete(t *testing.T) {
 	tree.Delete(Int(3))
 	tree.Delete(Int(6))
 	tree.Delete(Int(4))
-	// fmt.Println(tree.root)
-	// fmt.Println(tree.root.Left)
-	// fmt.Println(tree.root.Left.Left)
-	// fmt.Println(tree.root.Left.Right)
-	// fmt.Println(tree.root.Right)
-	// fmt.Println(tree.root.Right.Left)
-	// fmt.Println(tree.root.Right.Right)
 	k := 0
 	tree.AscendGreaterOrEqual(Int(1), Int(7), func(item Item) bool {
 		k++
@@ -106,6 +99,24 @@ func TestFindByRank(t *testing.T) {
 		j := tree.FindByRank(int(i))
 		if i != j[0] {
 			t.Errorf("got %v, expect %v", j, i)
+		}
+	}
+}
+
+func TestHeight(t *testing.T) {
+	data := map[int][]Int{
+		2: {2, 1, 3},
+		4: {4, 2, 1, 3, 6, 5, 7, 8},
+		9: {1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+	for i, l := range data {
+		tree := New()
+		for _, v := range l {
+			tree.Insert(v)
+		}
+		h := tree.Height()
+		if h != i {
+			t.Errorf("got %v, expect %v", h, i)
 		}
 	}
 }

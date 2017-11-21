@@ -38,11 +38,6 @@ func TestAscendGreaterOrEqual(t *testing.T) {
 	for _, i := range order {
 		tree.Insert(i)
 	}
-	// fmt.Println(tree.root)
-	// fmt.Println(tree.root.Left)
-	// fmt.Println(tree.root.Right)
-	// fmt.Println(tree.root.Right.Right)
-	// fmt.Println(tree.root.Right.Right.Right)
 	k := 0
 	tree.AscendGreaterOrEqual(Int(2), Int(5), func(item Item) bool {
 		if k > 3 {
