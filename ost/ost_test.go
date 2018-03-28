@@ -47,6 +47,7 @@ func TestDelete(t *testing.T) {
 	tree.Delete(Int(3))
 	tree.Delete(Int(6))
 	tree.Delete(Int(4))
+	tree.PrettyPrint()
 	k := 0
 	tree.AscendGreaterOrEqual(Int(1), Int(7), func(item Item) bool {
 		k++
@@ -106,8 +107,8 @@ func TestFindByRank(t *testing.T) {
 func TestHeight(t *testing.T) {
 	data := map[int][]Int{
 		2: {2, 1, 3},
-		4: {4, 2, 1, 3, 6, 5, 7, 8},
-		9: {1, 2, 3, 4, 5, 6, 7, 8, 9},
+		3: {1, 2, 3, 4, 5, 6, 7},
+		4: {1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 	for i, l := range data {
 		tree := New()
@@ -120,3 +121,24 @@ func TestHeight(t *testing.T) {
 		}
 	}
 }
+
+// func TestLeftRotate(t *testing.T) {
+// 	tree := New()
+// 	data := []Int{2, 1, 4, 3, 5, 6}
+// 	for _, i := range data {
+// 		tree.Insert(i)
+// 	}
+// 	tree.PrettyPrint()
+// 	tree.root.leftRotate()
+// 	tree.PrettyPrint()
+// }
+
+// func TestRightRotate(t *testing.T) {
+// 	tree := New()
+// 	data := []Int{5, 6, 3, 4, 2}
+// 	for _, i := range data {
+// 		tree.Insert(i)
+// 	}
+// 	tree.Insert(Int(1))
+// 	tree.PrettyPrint()
+// }

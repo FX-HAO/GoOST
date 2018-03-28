@@ -23,67 +23,47 @@ const (
 // "greaterThan" or "lessThan" queries.
 func (n *Node) iterate(dir direction, start, stop Item, includeStart bool, iter ItemIterator) (end, terminate bool) {
 	if n == nil {
-		fmt.Println("n is null")
 		return false, false
 	}
 
-	var p *Node
+	// var p *Node
+	value := n.firstItem()
+
 	switch dir {
 	case ascend:
 		if start.Greater(stop) {
 			panic(fmt.Sprintf("start %v must be less than stop %v.", start, stop))
 		}
 
-		p = n
-
-		// this node is before start
-		for {
-			if p == nil {
-				return true, false
-			}
-			if p.firstItem().Less(start) {
-				p = p.Right
-			} else {
-				break
-			}
+		if value.Less(start) {
+			return false, false
 		}
 
-		// equals
-		if Equal(start, p.firstItem()) {
-			if includeStart {
-				for i := range p.Items {
-					if res := iter(p.Items[i]); !res {
+		if value.Less(stop) {
+			if includeStart && Equal(start, value) {
+				for i := range n.Items {
+					if res := iter(n.Items[i]); !res {
 						return false, true
 					}
 				}
 			}
-			if p.Right != nil {
-				if end, terminate = p.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
+			if value.Greater(start) {
+				if end, terminate = n.Left.iterate(dir, start, stop, includeStart, iter); end || terminate {
 					return end, terminate
 				}
-			} else {
-				return false, false
+				for i := range n.Items {
+					if res := iter(n.Items[i]); !res {
+						return false, true
+					}
+				}
 			}
-		}
-
-		// this node is between start and stop
-		if start.Less(p.firstItem()) && p.Left != nil {
-			if end, terminate = p.Left.iterate(dir, start, stop, includeStart, iter); end || terminate {
+			if end, terminate = n.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
 				return end, terminate
 			}
-		}
-		if stop.Greater(p.firstItem()) {
-			for i := range p.Items {
-				if res := iter(p.Items[i]); !res {
-					return false, true
-				}
-			}
-			if p.Right != nil {
-				if end, terminate = p.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
-					return end, terminate
-				}
-			}
 		} else {
+			if end, terminate = n.Left.iterate(dir, start, stop, includeStart, iter); end || terminate {
+				return end, terminate
+			}
 			return true, false
 		}
 
@@ -93,53 +73,38 @@ func (n *Node) iterate(dir direction, start, stop Item, includeStart bool, iter 
 			panic(fmt.Sprintf("start %v must be greater than stop %v.", start, stop))
 		}
 
-		p = n
-
-		for {
-			if p == nil {
-				return true, false
+		if !value.Greater(stop) {
+			if end, terminate = n.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
+				return end, terminate
 			}
-			if p.firstItem().Greater(start) {
-				p = p.Left
-			} else {
-				break
-			}
+			return true, false
 		}
 
-		// equals
-		if Equal(start, p.firstItem()) {
-			if includeStart {
-				for i := range p.Items {
-					if res := iter(p.Items[i]); !res {
-						return false, true
-					}
+		if value.Greater(start) {
+			if end, terminate = n.Left.iterate(dir, start, stop, includeStart, iter); end || terminate {
+				return end, terminate
+			}
+		} else if includeStart && Equal(start, value) {
+			for i := range n.Items {
+				if res := iter(n.Items[i]); !res {
+					return false, true
 				}
 			}
-			if end, terminate = p.Left.iterate(dir, start, stop, includeStart, iter); terminate {
+		} else if value.Less(start) {
+			if end, terminate = n.Right.iterate(dir, start, stop, includeStart, iter); end || terminate {
+				return end, terminate
+			}
+			for i := range n.Items {
+				if res := iter(n.Items[i]); !res {
+					return false, true
+				}
+			}
+			if end, terminate = n.Left.iterate(dir, start, stop, includeStart, iter); end || terminate {
 				return end, terminate
 			}
 		}
 
-		// this node is between start and stop
-		if start.Greater(p.firstItem()) && stop.Less(p.firstItem()) {
-			if p.Right != nil {
-				if end, terminate = p.Right.iterate(dir, start, stop, includeStart, iter); terminate {
-					return end, terminate
-				}
-			}
-			for i := range p.Items {
-				if res := iter(p.Items[i]); !res {
-					return false, true
-				}
-			}
-			if p.Left != nil {
-				if end, terminate = p.Left.iterate(dir, start, stop, includeStart, iter); end || terminate {
-					return end, terminate
-				}
-			}
-		}
-
-		return true, false
+		return false, false
 	}
 
 	return true, false

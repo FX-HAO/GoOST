@@ -14,6 +14,7 @@ type Item interface {
 type Node struct {
 	Items       []Item
 	count       int
+	height      int
 	Left, Right *Node
 }
 
@@ -22,7 +23,7 @@ func (n *Node) firstItem() Item {
 }
 
 func newNode(item Item) *Node {
-	return &Node{Items: []Item{item}, count: 1}
+	return &Node{Items: []Item{item}, count: 1, height: 1}
 }
 
 func (n *Node) append(item Item) {
@@ -46,10 +47,103 @@ func (n *Node) append(item Item) {
 		n.Items = append(n.Items, item)
 		// n.count++
 	}
+	n.height = 1 + max(n.Left.getHeight(), n.Right.getHeight())
 	n.count++
+	n.rebalance(item)
+}
+
+func (n *Node) getHeight() int {
+	if n == nil {
+		return 0
+	}
+	return n.height
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func (n *Node) getBalance() int {
+	if n == nil {
+		return 0
+	}
+	return n.Left.getHeight() - n.Right.getHeight()
+}
+
+func (n *Node) rebalance(key Item) {
+	balance := n.getBalance()
+	// Left left case
+	if balance > 1 && n.Left.firstItem().Greater(key) {
+		n.rightRotate()
+	}
+	// Right Right case
+	if balance < -1 && n.Right.firstItem().Less(key) {
+		n.leftRotate()
+	}
+	// Left Right case
+	if balance > 1 && n.Left.firstItem().Less(key) {
+		n.Left.leftRotate()
+		n.rightRotate()
+	}
+	// Right Left case
+	if balance < -1 && n.Right.firstItem().Greater(key) {
+		n.Right.rightRotate()
+		n.leftRotate()
+	}
+}
+
+func (n *Node) exchange(n2 *Node) {
+	n.Items, n2.Items = n2.Items, n.Items
+	// n.count, n2.count = n2.count, n.count
+	// n.height, n2.height = n2.height, n.height
+}
+
+func (n *Node) getCount() int {
+	if n == nil {
+		return 0
+	}
+	return n.count
+}
+
+func (n *Node) recalculate() {
+	n.height = 1 + max(n.Left.getHeight(), n.Right.getHeight())
+	n.count = len(n.Items) + n.Left.getCount() + n.Right.getCount()
+}
+
+func (n *Node) rightRotate() {
+	right := n.Left
+	n.exchange(right)
+
+	n.Left = right.Left
+	right.Left = right.Right
+	right.Right = n.Right
+	n.Right = right
+
+	right.recalculate()
+	n.recalculate()
+}
+
+func (n *Node) leftRotate() {
+	left := n.Right
+	n.exchange(left)
+
+	n.Right = left.Right
+	left.Right = left.Left
+	left.Left = n.Left
+	n.Left = left
+
+	left.recalculate()
+	n.recalculate()
 }
 
 func (n *Node) remove(item Item) bool {
+	if n == nil {
+		return false
+	}
+
 	var delNode *Node
 
 	if n.firstItem().Greater(item) {
@@ -139,10 +233,6 @@ func (n *Node) remove(item Item) bool {
 		}
 	}
 	return false
-}
-
-func (n *Node) promote() {
-
 }
 
 func (n *Node) include(item Item) (bool, int) {
@@ -248,27 +338,27 @@ func (n *Node) findByRank(rank int) []Item {
 	return nil
 }
 
-func (n *Node) Height() int {
-	if n == nil {
-		return 0
-	}
+// func (n *Node) Height() int {
+// 	if n == nil {
+// 		return 0
+// 	}
 
-	if n.Left == nil {
-		return 1 + n.Right.Height()
-	}
-	if n.Right == nil {
-		return 1 + n.Left.Height()
-	}
+// 	if n.Left == nil {
+// 		return 1 + n.Right.Height()
+// 	}
+// 	if n.Right == nil {
+// 		return 1 + n.Left.Height()
+// 	}
 
-	if n.Left.count > n.Right.count {
-		return 1 + n.Left.Height()
-	} else {
-		return 1 + n.Right.Height()
-	}
-}
+// 	if n.Left.count > n.Right.count {
+// 		return 1 + n.Left.Height()
+// 	} else {
+// 		return 1 + n.Right.Height()
+// 	}
+// }
 
 func (n *Node) PrettyPrint() {
-	height := n.Height()
+	height := n.getHeight()
 	lineNum := 1<<uint(height) - 1
 	var s [][]string
 	for i := 0; i < height; i++ {
@@ -376,7 +466,7 @@ func (t *OST) Height() int {
 		return 0
 	}
 
-	return t.root.Height()
+	return t.root.getHeight()
 }
 
 func (t *OST) PrettyPrint() {
