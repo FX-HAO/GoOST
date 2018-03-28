@@ -49,7 +49,7 @@ func (n *Node) append(item Item) {
 	}
 	n.height = 1 + max(n.Left.getHeight(), n.Right.getHeight())
 	n.count++
-	n.rebalance(item)
+	n.rebalance()
 }
 
 func (n *Node) getHeight() int {
@@ -73,26 +73,30 @@ func (n *Node) getBalance() int {
 	return n.Left.getHeight() - n.Right.getHeight()
 }
 
-func (n *Node) rebalance(key Item) {
+func (n *Node) rebalance() {
 	balance := n.getBalance()
+	leftBalance := n.Left.getBalance()
+	rightBalance := n.Right.getBalance()
 	// Left left case
-	if balance > 1 && n.Left.firstItem().Greater(key) {
+	if balance > 1 && n.Left.getBalance() >= 0 {
 		n.rightRotate()
 	}
 	// Right Right case
-	if balance < -1 && n.Right.firstItem().Less(key) {
+	if balance < -1 && n.Right.getBalance() <= 0 {
 		n.leftRotate()
 	}
 	// Left Right case
-	if balance > 1 && n.Left.firstItem().Less(key) {
+	if balance > 1 && n.Left.getBalance() < 0 {
 		n.Left.leftRotate()
 		n.rightRotate()
 	}
 	// Right Left case
-	if balance < -1 && n.Right.firstItem().Greater(key) {
+	if balance < -1 && n.Right.getBalance() > 0 {
 		n.Right.rightRotate()
 		n.leftRotate()
 	}
+	leftBalance++
+	rightBalance++
 }
 
 func (n *Node) exchange(n2 *Node) {
@@ -442,6 +446,7 @@ func (t *OST) Delete(item Item) {
 		return
 	}
 	t.root.remove(item)
+	t.root.rebalance()
 }
 
 func (t *OST) Rank(item Item) int {

@@ -40,14 +40,13 @@ func TestOSTInsert(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	tree := New()
-	data := []Int{4, 2, 1, 3, 6, 5, 7}
+	data := []Int{1, 2, 3, 4, 5, 6, 7}
 	for _, i := range data {
 		tree.Insert(i)
 	}
+	tree.Delete(Int(1))
+	tree.Delete(Int(2))
 	tree.Delete(Int(3))
-	tree.Delete(Int(6))
-	tree.Delete(Int(4))
-	tree.PrettyPrint()
 	k := 0
 	tree.AscendGreaterOrEqual(Int(1), Int(7), func(item Item) bool {
 		k++
@@ -55,19 +54,8 @@ func TestDelete(t *testing.T) {
 			t.Fatalf("returned more items than expected")
 		}
 		i := item.(Int)
-		switch k {
-		case 1:
-			if i != data[2] {
-				t.Errorf("got %v, expect %v", i, data[2])
-			}
-		case 2:
-			if i != data[1] {
-				t.Errorf("got %v, expect %v", i, data[1])
-			}
-		case 3:
-			if i != data[5] {
-				t.Errorf("got %v, expect %v", i, data[5])
-			}
+		if i != data[2+k] {
+			t.Errorf("got %v, expect %v", i, data[2+k])
 		}
 		return true
 	})
