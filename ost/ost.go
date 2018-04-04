@@ -1,13 +1,20 @@
 package ost
 
 import (
-	"errors"
 	"fmt"
+)
+
+type side int
+
+const (
+	left  = side(-1)
+	right = side(+1)
 )
 
 type Item interface {
 	Less(item Item) bool
 	Greater(item Item) bool
+	Equal(item Item) bool
 	Key() int
 }
 
@@ -47,7 +54,7 @@ func (n *Node) append(item Item) {
 		n.Items = append(n.Items, item)
 		// n.count++
 	}
-	n.height = 1 + max(n.Left.getHeight(), n.Right.getHeight())
+	n.updateHeight()
 	n.count++
 	n.rebalance()
 }
@@ -57,6 +64,10 @@ func (n *Node) getHeight() int {
 		return 0
 	}
 	return n.height
+}
+
+func (n *Node) updateHeight() {
+	n.height = 1 + max(n.Left.getHeight(), n.Right.getHeight())
 }
 
 func max(a, b int) int {
@@ -75,8 +86,6 @@ func (n *Node) getBalance() int {
 
 func (n *Node) rebalance() {
 	balance := n.getBalance()
-	leftBalance := n.Left.getBalance()
-	rightBalance := n.Right.getBalance()
 	// Left left case
 	if balance > 1 && n.Left.getBalance() >= 0 {
 		n.rightRotate()
@@ -95,14 +104,10 @@ func (n *Node) rebalance() {
 		n.Right.rightRotate()
 		n.leftRotate()
 	}
-	leftBalance++
-	rightBalance++
 }
 
 func (n *Node) exchange(n2 *Node) {
 	n.Items, n2.Items = n2.Items, n.Items
-	// n.count, n2.count = n2.count, n.count
-	// n.height, n2.height = n2.height, n.height
 }
 
 func (n *Node) getCount() int {
@@ -113,7 +118,7 @@ func (n *Node) getCount() int {
 }
 
 func (n *Node) recalculate() {
-	n.height = 1 + max(n.Left.getHeight(), n.Right.getHeight())
+	n.updateHeight()
 	n.count = len(n.Items) + n.Left.getCount() + n.Right.getCount()
 }
 
@@ -143,98 +148,69 @@ func (n *Node) leftRotate() {
 	n.recalculate()
 }
 
-func (n *Node) remove(item Item) bool {
+func (n *Node) removeItem(item Item) (bool, *Node) {
+	var newRoot *Node
+	if ok, pos := n.include(item); ok {
+		n.Items = append(n.Items[:pos], n.Items[pos+1:]...)
+	}
+	if len(n.Items) == 0 {
+		var rootSide side
+		if n.Left.getHeight() > n.Right.getHeight() {
+			rootSide = left
+		} else {
+			rootSide = right
+		}
+		switch rootSide {
+		case left:
+			newRoot = n.Left.deleteMaximum()
+		case right:
+			newRoot = n.Right.deleteMinimum()
+		}
+		if newRoot != nil {
+			if !n.Left.equal(newRoot) {
+				newRoot.Left = n.Left
+			}
+			if !n.Right.equal(newRoot) {
+				newRoot.Right = n.Right
+			}
+			newRoot.recalculate()
+			newRoot.rebalance()
+		}
+		return true, newRoot
+	}
+	return false, nil
+}
+
+func (n *Node) remove(item Item) (isDel bool, subRoot *Node) {
 	if n == nil {
-		return false
+		return false, nil
 	}
 
-	var delNode *Node
-
 	if n.firstItem().Greater(item) {
-		if n.Left != nil {
-			if ok := n.Left.remove(item); ok {
-				delNode = n.Left
-				if len(delNode.Items) == 0 {
-					if delNode.Left == nil {
-						n.Left = delNode.Right
-						return false
-					}
-					if delNode.Right == nil {
-						n.Left = delNode.Left
-						return false
-					}
-					if delNode.Left.count > delNode.Right.count {
-						maxNode, err := delNode.Left.deleteMaximum()
-						if err == ErrDeleteAtMinimum {
-							maxNode.Right = delNode.Right
-						} else {
-							maxNode.Left = delNode.Left
-							maxNode.Right = delNode.Right
-						}
-						maxNode.count = delNode.count - 1
-						n.Left = maxNode
-					} else {
-						minNode, err := delNode.Right.deleteMinimum()
-						if err == ErrDeleteAtMinimum {
-							minNode.Left = delNode.Left
-						} else {
-							minNode.Left = delNode.Left
-							minNode.Right = delNode.Right
-						}
-						minNode.count = delNode.count - 1
-						n.Left = minNode
-					}
-				}
-				n.count--
-			}
-		} else {
-			return false
+		if removed, leftRoot := n.Left.remove(item); removed {
+			isDel = removed
+			n.Left = leftRoot
 		}
 	} else if n.firstItem().Less(item) {
-		if n.Right != nil {
-			if ok := n.Right.remove(item); ok {
-				delNode := n.Right
-				if len(delNode.Items) == 0 {
-					if delNode.Left == nil {
-						n.Right = delNode.Right
-						return false
-					}
-					if delNode.Right == nil {
-						n.Right = delNode.Left
-						return false
-					}
-					if delNode.Left.count > delNode.Right.count {
-						maxNode, err := delNode.Left.deleteMaximum()
-						if err == ErrDeleteAtMinimum {
-							maxNode.Right = delNode.Right
-						} else {
-							maxNode.Left = delNode.Left
-							maxNode.Right = delNode.Right
-						}
-						maxNode.count = delNode.count - 1
-						n.Right = maxNode
-					} else {
-						minNode, err := delNode.Right.deleteMinimum()
-						if err == ErrDeleteAtMinimum {
-							minNode.Left = delNode.Left
-						} else {
-							minNode.Left = delNode.Left
-							minNode.Right = delNode.Right
-						}
-						minNode.count = delNode.count - 1
-						n.Right = minNode
-					}
-				}
-				n.count--
-			}
-		} else {
-			return false
+		if removed, rightRoot := n.Right.remove(item); removed {
+			isDel = removed
+			n.Right = rightRoot
 		}
 	} else {
-		if ok, pos := n.include(item); ok {
-			n.Items = append(n.Items[:pos], n.Items[pos+1:]...)
-			return true
-		}
+		return n.removeItem(item)
+	}
+
+	if isDel {
+		n.recalculate()
+		n.rebalance()
+	}
+
+	return isDel, n
+}
+
+func (n *Node) equal(other *Node) bool {
+	if n != nil && other != nil && n.firstItem().Equal(other.firstItem()) {
+		return true
 	}
 	return false
 }
@@ -256,20 +232,22 @@ func (n *Node) minimum() *Node {
 	return n
 }
 
-var ErrDeleteAtMinimum = errors.New("The root you want to delete is the minimum node of the subtree")
-
 // deleteMinimum removes the minimum node of subtree
-func (n *Node) deleteMinimum() (*Node, error) {
+func (n *Node) deleteMinimum() *Node {
+	if n == nil {
+		return nil
+	}
+
 	if n.Left != nil {
-		n.count--
+		defer n.recalculate()
 		if n.Left.Left == nil {
 			minimum := n.Left
 			n.Left = nil
-			return minimum, nil
+			return minimum
 		}
 		return n.Left.deleteMinimum()
 	}
-	return n, ErrDeleteAtMinimum
+	return n
 }
 
 // minimum returns the maximum node of subtree
@@ -280,20 +258,23 @@ func (n *Node) maximum() *Node {
 	return n
 }
 
-var ErrDeleteAtMaximum = errors.New("The root you want to delete is the maximum node of the subtree")
-
 // deleteMaximum removes the maximum node of subtree
-func (n *Node) deleteMaximum() (*Node, error) {
+func (n *Node) deleteMaximum() *Node {
+	if n == nil {
+		return nil
+	}
+
 	if n.Right != nil {
-		n.count--
+		defer n.recalculate()
+		// n.count--
 		if n.Right.Right == nil {
 			maximum := n.Right
 			n.Right = nil
-			return maximum, nil
+			return maximum
 		}
 		return n.Right.deleteMaximum()
 	}
-	return n, ErrDeleteAtMaximum
+	return n
 }
 
 func (n *Node) rank(item Item) int {
@@ -342,25 +323,6 @@ func (n *Node) findByRank(rank int) []Item {
 	return nil
 }
 
-// func (n *Node) Height() int {
-// 	if n == nil {
-// 		return 0
-// 	}
-
-// 	if n.Left == nil {
-// 		return 1 + n.Right.Height()
-// 	}
-// 	if n.Right == nil {
-// 		return 1 + n.Left.Height()
-// 	}
-
-// 	if n.Left.count > n.Right.count {
-// 		return 1 + n.Left.Height()
-// 	} else {
-// 		return 1 + n.Right.Height()
-// 	}
-// }
-
 func (n *Node) PrettyPrint() {
 	height := n.getHeight()
 	lineNum := 1<<uint(height) - 1
@@ -378,7 +340,7 @@ func (n *Node) PrettyPrint() {
 		if node == nil {
 			return
 		}
-		s[d-1][pos] = fmt.Sprintf("%.2v", node.firstItem())
+		s[d-1][pos] = fmt.Sprintf("%2.1v", node.firstItem())
 		helper(node.Left, d+1, pos-(1<<uint(height-d-1)))
 		helper(node.Right, d+1, pos+(1<<uint(height-d-1)))
 	}
@@ -409,44 +371,11 @@ func (t *OST) Delete(item Item) {
 	if t.root == nil {
 		return
 	}
-	var delNode, minNode, maxNode *Node
-	var err error
-	if ok, pos := t.root.include(item); ok {
-		delNode = t.root
-		delNode.Items = append(delNode.Items[:pos], delNode.Items[pos+1:]...)
-		if len(delNode.Items) == 0 {
-			if delNode.Left == nil {
-				t.root = delNode.Right
-			}
-			if delNode.Right == nil {
-				t.root = delNode.Left
-			}
-			if delNode.Left.count > delNode.Right.count {
-				maxNode, err = delNode.Left.deleteMaximum()
-				if err == ErrDeleteAtMaximum {
-					maxNode.Right = delNode.Right
-				} else {
-					maxNode.Left = delNode.Left
-					maxNode.Right = delNode.Right
-				}
-				maxNode.count = delNode.count - 1
-				t.root = maxNode
-			} else {
-				minNode, err = delNode.Right.deleteMinimum()
-				if err == ErrDeleteAtMinimum {
-					minNode.Left = delNode.Left
-				} else {
-					minNode.Left = delNode.Left
-					minNode.Right = delNode.Right
-				}
-				minNode.count = delNode.count - 1
-				t.root = minNode
-			}
-		}
-		return
+
+	if isDel, newRoot := t.root.remove(item); isDel && newRoot != nil {
+		t.root = newRoot
+		t.root.rebalance()
 	}
-	t.root.remove(item)
-	t.root.rebalance()
 }
 
 func (t *OST) Rank(item Item) int {

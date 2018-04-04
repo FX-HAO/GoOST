@@ -14,6 +14,10 @@ func (i Int) Greater(item Item) bool {
 	return i > item.(Int)
 }
 
+func (i Int) Equal(item Item) bool {
+	return i == item.(Int)
+}
+
 func (i Int) Key() int {
 	return int(i)
 }
